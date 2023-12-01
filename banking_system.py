@@ -1,6 +1,5 @@
 import textwrap
 from abc import ABC, abstractmethod, abstractproperty
-from concurrent.futures.process import _SafeQueue
 from datetime import datetime
 
 
@@ -9,11 +8,11 @@ class Cliente:
         self.endereco = endereco
         self.contas = []
 
-        def realizar_transacao(self, conta, transacao):
-            transacao.registrar(conta)
+    def realizar_transacao(self, conta, transacao):
+        transacao.registrar(conta)
 
-        def adicionar_conta(self, conta):
-            self.contas.append()
+    def adicionar_conta(self, conta):
+        self.contas.append(conta)
 
 
 class PessoaFisica(Cliente):
@@ -95,8 +94,8 @@ class ContaCorrente(Conta):
         numero_saque = len(
             [
                 transacao
-                for transacao in self.historico.transacao
-                if transacao["tipo"] == _SafeQueue.__name__
+                for transacao in self.historico.transacoes
+                if transacao["tipo"] == Saque.__name__
             ]
         )
 
@@ -168,7 +167,7 @@ class Saque(Transacao):
 
 class Deposito(Transacao):
     def __init__(self, valor):
-        self.valor = valor
+        self._valor = valor
 
     @property
     def valor(self):
@@ -258,11 +257,11 @@ def exibir_extrato(clientes):
         return
 
     print("\n ================== EXTRATO ==================")
-    transacao = conta.historioc.transacoes
+    transacoes = conta.historioc.transacoes
 
     extrato = ""
     if not transacoes:
-        extreato = "Não foram realizadas movimentações."
+        extrato = "Não foram realizadas movimentações."
     else:
         for transacao in transacoes:
             extrato += f"\n{transacao['tipo']}:\n\tR$ {transacao['valor']:.2f}"
@@ -287,7 +286,7 @@ def criar_conta(numero_conta, clientes, contas):
 
 def listar_contas(contas):
     for conta in contas:
-        print('=' + 100)
+        print("=" + 100)
         print(textwrap.dedent(str(conta)))
 
 
@@ -295,22 +294,28 @@ def criar_cliente(clientes):
     """
     docstring
     """
-    cpf = input('Informe o CPF (somente número): ')
+    cpf = input("Informe o CPF (somente número): ")
     cliente = filtrar_cliente(cpf, clientes)
-    
+
     if cliente:
-        print('\n@@@ Já existe cliente com esse CPF! @@@')
+        print("\n@@@ Já existe cliente com esse CPF! @@@")
         return
-    
-    nome = input('Informe seu nome completo: ')
-    data_nascimento = input('Informe a data do seu nascimento (dd-mm-aaaa): ')
-    endereco = input('Informe o endereço (logradouro, nro - bairro - cidade/sigla estado): ')
-    
-    cliente = PessoaFisica(nome=nome, data_nascimento=data_nascimento, cpf=cpf, endereco=endereco)
-    
+
+    nome = input("Informe seu nome completo: ")
+    data_nascimento = input("Informe a data do seu nascimento (dd-mm-aaaa): ")
+    endereco = input(
+        "Informe o endereço (logradouro, nro - bairro - cidade/sigla estado): "
+    )
+
+    cliente = PessoaFisica(
+        nome=nome, data_nascimento=data_nascimento, cpf=cpf, endereco=endereco
+    )
+
     clientes.append(cliente)
-    
-    print('\n === Cliente criado com sucesso! ')
+
+    print("\n === Cliente criado com sucesso! ")
+    print("\n === Cliente criado com sucesso! ")
+
 
 def main():
     clientes = []
