@@ -1,12 +1,10 @@
+import textwrap
 from abc import ABC, abstractmethod, abstractproperty
 from concurrent.futures.process import _SafeQueue
 from datetime import datetime
 
-from colorama import init
-
 
 class Cliente:
-
     def __init__(self, endereco):
         self.endereco = endereco
         self.contas = []
@@ -19,7 +17,6 @@ class Cliente:
 
 
 class PessoaFisica(Cliente):
-
     def __init__(self, nome, data_nascimento, cpf, endereco):
         super().__init__(endereco)
         self.nome = nome
@@ -28,7 +25,6 @@ class PessoaFisica(Cliente):
 
 
 class Conta:
-
     def __init__(self, numero, cliente):
         self._saldo = 0
         self._numero = numero
@@ -90,7 +86,6 @@ class Conta:
 
 
 class ContaCorrente(Conta):
-
     def __init__(self, numero, cliente, limite=500, limite_saques=3):
         super().__init__(numero, cliente)
         self.limite = limite
@@ -150,37 +145,205 @@ class Transacao(ABC):
     @abstractproperty
     def valor(self):
         pass
-    
+
     @abstractmethod
     def registrar(self, conta):
         pass
-    
+
 
 class Saque(Transacao):
     def __init__(self, valor):
-      self.valor = valor
-      
+        self.valor = valor
+
     @property
     def valor(self):
         return self._valor
-    
+
     def registrar(self, conta):
         sucesso_transacao = conta.sacar(self.valor)
-        
+
         if sucesso_transacao:
             conta.historico.adicionar_transacao(self)
 
 
-class Depositar(Transacao):
+class Deposito(Transacao):
     def __init__(self, valor):
-      self.valor = valor
-      
+        self.valor = valor
+
     @property
     def valor(self):
         return self._valor
-    
+
     def registrar(self, conta):
         sucesso_transacao = conta.depositar(self.valor)
-        
+
         if sucesso_transacao:
             conta.historico.adicionar_transacao(self)
+
+
+def menu():
+    menu = """\n
+    ================ MENU ================ 
+    [1]\tDepositar
+    [2]\tSacar
+    [3]\tExtrato
+    [4]\tNova Conta
+    [5]\tListar Contas
+    [6]\tNovo Usuário
+    [0]\tSair
+    => """
+    return input(textwrap.dedent(menu))
+
+
+def filtrar_cliente(cpf, clientes):
+    clientes_filtrados = [cliente for cliente in clientes if cliente.cpf == cpf]
+    return clientes_filtrados[0] if clientes_filtrados else None
+
+
+def recuperar_conta_cliente(cliente):
+    if not cliente.contas:
+        print("\n@@@ Cliente não possui conta! @@@")
+        return
+
+    # FIXME: não permite cliente escolher a conta
+    return cliente.contas[0]
+
+
+def depositar(clientes):
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
+
+    if not cliente:
+        print("\n@@@ Cliente não encontrado! @@@")
+        return
+
+    valor = float(input("Informe o valor do depósito: "))
+    transacao = Deposito(valor)
+
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+
+    cliente.realizar_transacao(conta, transacao)
+
+
+def sacar(clientes):
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
+
+    if not clientes:
+        print("\n@@@ Cliente não encontrado! @@@")
+        return
+
+    valor = float(input("Informe o valor do saque: "))
+    transacao = Saque(valor)
+
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+
+    cliente.realizar_transacao(conta, transacao)
+
+
+def exibir_extrato(clientes):
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
+
+    if not cliente:
+        print("\n@@@ Cliente não encontrado! @@@")
+        return
+
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+
+    print("\n ================== EXTRATO ==================")
+    transacao = conta.historioc.transacoes
+
+    extrato = ""
+    if not transacoes:
+        extreato = "Não foram realizadas movimentações."
+    else:
+        for transacao in transacoes:
+            extrato += f"\n{transacao['tipo']}:\n\tR$ {transacao['valor']:.2f}"
+
+    print(extrato)
+    print(f"\nSaldo:\n\tR$ {conta.saldo:.2f}")
+    print("===============================================")
+
+
+def criar_conta(numero_conta, clientes, contas):
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_cliente(cpf, clientes)
+
+    if not cliente:
+        print("\n@@@ Cliente não encontrado! criação de conta encerrado!  @@@")
+        return
+
+    conta = ContaCorrente.nova_conta(cliente=cliente, numero=numero_conta)
+    contas.append(conta)
+    cliente.contas.append(conta)
+
+
+def listar_contas(contas):
+    for conta in contas:
+        print('=' + 100)
+        print(textwrap.dedent(str(conta)))
+
+
+def criar_cliente(clientes):
+    """
+    docstring
+    """
+    cpf = input('Informe o CPF (somente número): ')
+    cliente = filtrar_cliente(cpf, clientes)
+    
+    if cliente:
+        print('\n@@@ Já existe cliente com esse CPF! @@@')
+        return
+    
+    nome = input('Informe seu nome completo: ')
+    data_nascimento = input('Informe a data do seu nascimento (dd-mm-aaaa): ')
+    endereco = input('Informe o endereço (logradouro, nro - bairro - cidade/sigla estado): ')
+    
+    cliente = PessoaFisica(nome=nome, data_nascimento=data_nascimento, cpf=cpf, endereco=endereco)
+    
+    clientes.append(cliente)
+    
+    print('\n === Cliente criado com sucesso! ')
+
+def main():
+    clientes = []
+    contas = []
+
+    while True:
+        opcao = menu()
+
+        if opcao == "1":
+            depositar(clientes)
+
+        elif opcao == "2":
+            sacar(clientes)
+
+        elif opcao == "3":
+            exibir_extrato(clientes)
+
+        elif opcao == "4":
+            numero_conta = len(contas) + 1
+            criar_conta(numero_conta, clientes, contas)
+
+        elif opcao == "5":
+            listar_contas(contas)
+
+        elif opcao == "6":
+            criar_cliente(clientes)
+
+        elif opcao == "0":
+            break
+
+        else:
+            print(
+                """\n@@@ Operaçã inválida, por favor
+                selecione novamente a operação desejada.
+                @@@"""
+            )
