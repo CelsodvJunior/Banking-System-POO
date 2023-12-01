@@ -88,7 +88,7 @@ class ContaCorrente(Conta):
     def __init__(self, numero, cliente, limite=500, limite_saques=3):
         super().__init__(numero, cliente)
         self.limite = limite
-        self.limite_saque = limite_saques
+        self.limite_saques = limite_saques
 
     def sacar(self, valor):
         numero_saque = len(
@@ -141,7 +141,7 @@ class Historico:
 
 class Transacao(ABC):
     @property
-    @abstractproperty
+    @abstractmethod
     def valor(self):
         pass
 
@@ -152,7 +152,7 @@ class Transacao(ABC):
 
 class Saque(Transacao):
     def __init__(self, valor):
-        self.valor = valor
+        self._valor = valor
 
     @property
     def valor(self):
@@ -230,7 +230,7 @@ def sacar(clientes):
     cpf = input("Informe o CPF do cliente: ")
     cliente = filtrar_cliente(cpf, clientes)
 
-    if not clientes:
+    if not cliente:
         print("\n@@@ Cliente não encontrado! @@@")
         return
 
@@ -257,7 +257,7 @@ def exibir_extrato(clientes):
         return
 
     print("\n ================== EXTRATO ==================")
-    transacoes = conta.historioc.transacoes
+    transacoes = conta.historico.transacoes
 
     extrato = ""
     if not transacoes:
@@ -286,7 +286,7 @@ def criar_conta(numero_conta, clientes, contas):
 
 def listar_contas(contas):
     for conta in contas:
-        print("=" + 100)
+        print("=" * 100)
         print(textwrap.dedent(str(conta)))
 
 
@@ -352,3 +352,6 @@ def main():
                 selecione novamente a operação desejada.
                 @@@"""
             )
+
+
+main()
